@@ -51,12 +51,12 @@ function handleTimezonesCommand(message) {
     const content = message.content.toLowerCase();
 
     // Show all timezones (no role restriction now)
-    if (content === '!timezones') {
+    if (content === '`timezones') {
         return message.channel.send(getTimes());
     }
 
     // Show time for a specific region
-    if (content.startsWith('!time ')) {
+    if (content.startsWith('`time ')) {
         const regionInput = content.split(' ')[1].toUpperCase();
         const match = entries.find(([name]) => name === regionInput);
 

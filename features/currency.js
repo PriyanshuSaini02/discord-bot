@@ -2,13 +2,13 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 // Your API key
-const API_KEY = "86d852d8ac7210705693852a";
+const API_KEY = process.env.API_KEY;
 
 async function handleCurrencyCommand(message) {
     const args = message.content.trim().split(/\s+/);
 
     if (args.length !== 4) {
-        return message.reply("❌ Usage: `!convert <amount> <from_currency> <to_currency>`\nExample: `!convert 100 USD INR`");
+        return message.reply("❌ Usage: ``convert <amount> <from_currency> <to_currency>`\nExample: ``convert 100 USD INR`");
     }
 
     const amount = parseFloat(args[1]);
