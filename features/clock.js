@@ -35,37 +35,71 @@ const entries = [
     ['FLAME', 'America/Chicago'],
 ];
 
-// Format all time zones for "!timezones"
-// function getTimes() {
-//     let msg = '```';
-//     msg += `Current Times:\n\n`;
-//     for (const [name, zone] of entries) {
-//         const time = moment().tz(zone).format('hh:mm A');
-//         msg += `${name.padEnd(12)}: ${time}  (${zone})\n`;
-//     }
-//     msg += '```';
-//     return msg;
-// }
+// 🔧 Helper: get time string
+function formatTime(name, zone) {
+    const time = moment().tz(zone).format('hh:mm A');
+    return `${name.padEnd(12)}: ${time}  (${zone})`;
+}
 
+// 🔧 Show all times
+function getTimes() {
+    let msg = '```Current Times:\n\n';
+    for (const [name, zone] of entries) {
+        msg += formatTime(name, zone) + '\n';
+    }
+    msg += '```';
+    return msg;
+}
+
+// 🔧 Show filtered times
+function getGroupTimes(group) {
+    const filtered = entries.filter(([_, zone]) =>
+        zone.toLowerCase().includes(group.toLowerCase())
+    );
+
+    if (filtered.length === 0) return null;
+
+    let msg = `\`\`\`Times for: ${group.toUpperCase()}\n\n`;
+    for (const [name, zone] of filtered) {
+        msg += formatTime(name, zone) + '\n';
+    }
+    msg += '```';
+    return msg;
+}
+
+// 📦 Main handler
 function handleTimezonesCommand(message) {
-    const content = message.content.toLowerCase();
+    const content = message.content.trim().toLowerCase();
 
-    // Show all timezones (no role restriction now)
-    if (content === '`timezones') {
-        return message.channel.send(getTimes());
+    if (content === '.timezones') {
+        message.channel.send(getTimes());
+        return;
     }
 
-    // Show time for a specific region
-    if (content.startsWith('`time ')) {
-        const regionInput = content.split(' ')[1].toUpperCase();
-        const match = entries.find(([name]) => name === regionInput);
+    if (content.startsWith('.time')) {
+        const parts = content.split(' ');
+        if (parts.length === 1) {
+            message.channel.send("🕐 Please specify a region or group: `.time <region>`");
+            return;
+        }
 
-        if (!match) {
-            message.channel.send(`❌ Unknown region: ${regionInput}`);
-        } else {
+        const input = parts[1].toUpperCase();
+
+        // Exact region name match
+        const match = entries.find(([name]) => name === input);
+        if (match) {
             const [name, zone] = match;
             const time = moment().tz(zone).format('hh:mm A');
-            message.channel.send(`**${name}** time: ${time} (${zone})`);
+            message.channel.send(`🕓 **${name}** time: ${time} (${zone})`);
+            return;
+        }
+
+        // Group match (e.g., "europe", "india")
+        const groupTimes = getGroupTimes(input);
+        if (groupTimes) {
+            message.channel.send(groupTimes);
+        } else {
+            message.channel.send(`❌ No timezones found for \`${input}\``);
         }
     }
 }

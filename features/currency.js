@@ -8,7 +8,7 @@ async function handleCurrencyCommand(message) {
     const args = message.content.trim().split(/\s+/);
 
     if (args.length !== 4) {
-        return message.reply("❌ Usage: ``convert <amount> <from_currency> <to_currency>`\nExample: ``convert 100 USD INR`");
+        return message.reply("❌ Usage: `.convert <amount> <from_currency> <to_currency>`\nExample: ``convert 100 USD INR`");
     }
 
     const amount = parseFloat(args[1]);
