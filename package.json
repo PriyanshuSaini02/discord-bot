@@ -20,6 +20,7 @@
     "moment-timezone": "^0.6.0",
     "node-fetch": "^3.3.2",
     "nodemon": "^3.1.10",
-    "play-dl": "^1.9.7"
+    "play-dl": "^1.9.7",
+    "ytdl-core": "^4.11.5"
   }
 }
