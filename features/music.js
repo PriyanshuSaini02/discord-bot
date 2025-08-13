@@ -118,6 +118,34 @@ module.exports = async function handleMusic(message) {
     }
 };
 
+// async function playNext(guildId) {
+//     const serverQueue = queue.get(guildId);
+//     if (!serverQueue || !serverQueue.songs.length) {
+//         serverQueue?.connection?.destroy();
+//         queue.delete(guildId);
+//         return;
+//     }
+
+//     const song = serverQueue.songs[0];
+//     serverQueue.isPlaying = true;
+
+//     try {
+//         const stream = ytdl(song.url, {
+//             filter: 'audioonly',
+//             quality: 'highestaudio',
+//             highWaterMark: 1 << 25
+//         });
+//         const resource = createAudioResource(stream);
+//         player.play(resource);
+//         serverQueue.textChannel.send(`🎶 Now playing: **${song.title}**`);
+//     } catch (err) {
+//         console.error(err);
+//         serverQueue.textChannel.send(`❌ Failed to play: **${song.title}**, skipping.`);
+//         serverQueue.songs.shift();
+//         playNext(guildId);
+//     }
+// }
+
 async function playNext(guildId) {
     const serverQueue = queue.get(guildId);
     if (!serverQueue || !serverQueue.songs.length) {
@@ -130,12 +158,12 @@ async function playNext(guildId) {
     serverQueue.isPlaying = true;
 
     try {
-        const stream = ytdl(song.url, {
-            filter: 'audioonly',
-            quality: 'highestaudio',
-            highWaterMark: 1 << 25
+        // Use play-dl instead of ytdl-core
+        const streamData = await play.stream(song.url);
+        const resource = createAudioResource(streamData.stream, {
+            inputType: streamData.type
         });
-        const resource = createAudioResource(stream);
+
         player.play(resource);
         serverQueue.textChannel.send(`🎶 Now playing: **${song.title}**`);
     } catch (err) {
@@ -145,6 +173,7 @@ async function playNext(guildId) {
         playNext(guildId);
     }
 }
+
 
 player.on(AudioPlayerStatus.Idle, () => {
     const [guildId] = queue.keys();
