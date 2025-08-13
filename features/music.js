@@ -7,12 +7,11 @@ const {
 } = require('@discordjs/voice');
 const play = require('play-dl');
 const ytdl = require('@distube/ytdl-core');
-require('dotenv').config()
-const player = createAudioPlayer();
-const queue = new Map();
-const isLooping = new Map();
 
-const streamCache = new Map();
+const player = createAudioPlayer();
+const queue = new Map(); // guildId -> queue data
+const isLooping = new Map(); // guildId -> loop state
+let currentGuildId = null; // NEW: track which guild is currently playing
 
 module.exports = async function handleMusic(message) {
     const args = message.content.trim().split(' ');
@@ -59,6 +58,7 @@ module.exports = async function handleMusic(message) {
                 });
                 serverQueue.connection = connection;
                 connection.subscribe(player);
+                currentGuildId = guildId; // NEW: set current guild
                 playNext(guildId);
             } else {
                 message.reply(`✅ Added ${songsToAdd.length} song(s) to queue.`);
@@ -132,36 +132,14 @@ async function playNext(guildId) {
     serverQueue.isPlaying = true;
 
     try {
-        let stream;
-        const now = Date.now();
-
-        // Check cache
-        const cached = streamCache.get(song.url);
-        if (cached && cached.expires > now) {
-            console.log(`♻️ Using cached stream for ${song.title}`);
-            stream = ytdl(cached.directUrl, {
-                filter: 'audioonly',
-                quality: 'highestaudio',
-                highWaterMark: 1 << 25
-            });
-        } else {
-            // console.log(`📥 Fetching new stream for ${song.title}`);
-            const info = await ytdl.getInfo(song.url);
-            const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
-            streamCache.set(song.url, {
-                directUrl: format.url,
-                expires: now + (30 * 60 * 1000) // cache for 30 minutes
-            });
-
-            stream = ytdl(song.url, {
-                filter: 'audioonly',
-                quality: 'highestaudio',
-                highWaterMark: 1 << 25
-            });
-        }
-
+        const stream = ytdl(song.url, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25
+        });
         const resource = createAudioResource(stream);
         player.play(resource);
+        currentGuildId = guildId; // NEW: track guild when song starts
         serverQueue.textChannel.send(`🎶 Now playing: **${song.title}**`);
     } catch (err) {
         console.error(err);
@@ -172,12 +150,12 @@ async function playNext(guildId) {
 }
 
 player.on(AudioPlayerStatus.Idle, () => {
-    const [guildId] = queue.keys();
-    const serverQueue = queue.get(guildId);
+    if (!currentGuildId) return; // NEW: only run if we know the guild
+    const serverQueue = queue.get(currentGuildId);
     if (!serverQueue) return;
 
-    if (!isLooping.get(guildId)) {
+    if (!isLooping.get(currentGuildId)) {
         serverQueue.songs.shift();
     }
-    playNext(guildId);
+    playNext(currentGuildId);
 });
