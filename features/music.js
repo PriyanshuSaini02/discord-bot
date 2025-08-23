@@ -137,9 +137,19 @@ async function playNext(guildId) {
             quality: 'highestaudio',
             highWaterMark: 1 << 25
         });
+
+        // NEW: catch stream-level errors
+        stream.on('error', (err) => {
+            console.error(`Stream error: ${err.message}`);
+            serverQueue.textChannel.send(`❌ Stream error, skipping: **${song.title}**`);
+            serverQueue.songs.shift();
+            serverQueue.isPlaying = false;
+            playNext(guildId);
+        });
+
         const resource = createAudioResource(stream);
         player.play(resource);
-        currentGuildId = guildId; // NEW: track guild when song starts
+        currentGuildId = guildId;
         serverQueue.textChannel.send(`🎶 Now playing: **${song.title}**`);
     } catch (err) {
         console.error(err);
@@ -149,8 +159,21 @@ async function playNext(guildId) {
     }
 }
 
+// NEW: handle player errors globally
+player.on('error', (err) => {
+    console.error(`AudioPlayer error: ${err.message}`);
+    if (!currentGuildId) return;
+    const serverQueue = queue.get(currentGuildId);
+    if (serverQueue) {
+        serverQueue.textChannel.send('⚠️ Playback error, skipping...');
+        serverQueue.songs.shift();
+        serverQueue.isPlaying = false;
+        playNext(currentGuildId);
+    }
+});
+
 player.on(AudioPlayerStatus.Idle, () => {
-    if (!currentGuildId) return; // NEW: only run if we know the guild
+    if (!currentGuildId) return;
     const serverQueue = queue.get(currentGuildId);
     if (!serverQueue) return;
 
